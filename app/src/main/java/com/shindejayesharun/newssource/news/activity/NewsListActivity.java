@@ -17,6 +17,8 @@ import com.shindejayesharun.newssource.news.adapter.GooglesNewsAdapter;
 import com.shindejayesharun.newssource.news.fragment.NewsListFragment;
 import com.shindejayesharun.newssource.news.model.GoogleNewsModel;
 import com.shindejayesharun.newssource.news.model.NewsFeedModel;
+import com.shindejayesharun.newssource.news.utility.PrefManager;
+import com.shindejayesharun.newssource.news.utility.RssExtract;
 import com.shindejayesharun.newssource.news.utility.Utility;
 
 import org.jsoup.Jsoup;
@@ -35,7 +37,8 @@ public class NewsListActivity extends AppCompatActivity {
     ArrayList<GoogleNewsModel> googleNewsModels;
     private String url;
     ImageView imgBackArrow;
-
+    PrefManager prefManager;
+    int selectedLanguage=0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,7 +46,8 @@ public class NewsListActivity extends AppCompatActivity {
 
 
         url = getIntent().getStringExtra("url");
-
+        prefManager=new PrefManager(this);
+        selectedLanguage=prefManager.getLanguage();
         init();
 
         dialog = new ProgressDialog(this);
@@ -91,33 +95,13 @@ public class NewsListActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             if(document!=null) {
-                Elements headlines = document.select("a.wmzpFf");
-                Elements articles = document.select("div.xrnccd");
                 try {
-                    Element elementNewsSource = articles.get(0).select("time.WW6dff").get(0);
-                    Log.e("titles", elementNewsSource.childNode(0).toString());
-
-                    for (int i = 0; i < articles.size(); i++) {
-                        GoogleNewsModel googleNewsModel = new GoogleNewsModel();
-                        if (checkElementSizeNotZero(articles.get(i).select("h3.ipQwMb").select("a.DY5T1d"))) {
-                            googleNewsModel.setHeadLine(articles.get(i).select("h3.ipQwMb").select("a.DY5T1d").get(0).childNode(0).toString());
-                            googleNewsModel.setHeadLineLink("https://news.google.com/" + articles.get(i).select("h3.ipQwMb").select("a.DY5T1d").get(0).getElementsByAttribute("href").attr("href"));
-                            googleNewsModel.setHeadLineSrc(articles.get(i).select("a.wEwyrc").get(0).childNode(0).toString());
-                            googleNewsModel.setHeadLineTime(articles.get(i).select("time.WW6dff").get(0).childNode(0).toString());
-                        }
-                        if (checkElementSizeNotZero(articles.get(i).select("img.tvs3Id"))) {
-                            googleNewsModel.setHeadLineImage(articles.get(i).select("img.tvs3Id").get(0).getElementsByAttribute("src").attr("src"));
-                        }
-                        if (checkElementSizeNotZero(articles.get(i).select("h4.ipQwMb").select("a.DY5T1d"))) {
-                            googleNewsModel.setSubHeadLine(articles.get(i).select("h4.ipQwMb").select("a.DY5T1d").get(0).childNode(0).toString());
-                            googleNewsModel.setSubHeadLineLink("https://news.google.com/" + articles.get(i).select("h4.ipQwMb").select("a.DY5T1d").get(0).getElementsByAttribute("href").attr("href"));
-                            googleNewsModel.setHeadLineSrc(articles.get(i).select("a.wEwyrc").get(0).childNode(0).toString());
-                            googleNewsModel.setSubHeadLineTime(articles.get(i).select("time.WW6dff").get(0).childNode(0).toString());
-                        }
-                        /*if (i %5 == 0 ){
-                            googleNewsModels.add(null);
-                        }*/
-                        googleNewsModels.add(googleNewsModel);
+                    if(selectedLanguage==0) {
+                        RssExtract.googleExtact(document, googleNewsModels);
+                    }else if(selectedLanguage==1){
+                        RssExtract.bbcExtract(document, googleNewsModels,false);
+                    }else if(selectedLanguage==2){
+                        RssExtract.googleExtact(document, googleNewsModels);
                     }
 
                 } catch (Exception e) {

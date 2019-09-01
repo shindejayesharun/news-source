@@ -18,17 +18,16 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.shindejayesharun.newssource.R;
-import com.shindejayesharun.newssource.news.adapter.GoogleNewsAdapter;
 import com.shindejayesharun.newssource.news.adapter.GooglesNewsAdapter;
 import com.shindejayesharun.newssource.news.adapter.NewsAdapter;
 import com.shindejayesharun.newssource.news.model.GoogleNewsModel;
 import com.shindejayesharun.newssource.news.model.NewsFeedModel;
+import com.shindejayesharun.newssource.news.utility.PrefManager;
+import com.shindejayesharun.newssource.news.utility.RssExtract;
 import com.shindejayesharun.newssource.news.utility.Utility;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -44,6 +43,8 @@ public class NewsListFragment extends Fragment {
     private RecyclerView newsRecyclerview;
     ArrayList<NewsFeedModel> newsFeedModels;
     ArrayList<GoogleNewsModel> googleNewsModels;
+    PrefManager prefManager;
+    Integer selectedLanguage=0;
 
     public static NewsListFragment newInstance() {
         return new NewsListFragment();
@@ -58,6 +59,10 @@ public class NewsListFragment extends Fragment {
         googleNewsModels = new ArrayList<>();
         newsRecyclerview = view.findViewById(R.id.newsRecyclerview);
         newsRecyclerview.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        prefManager=new PrefManager(getContext());
+        selectedLanguage=prefManager.getLanguage();
+
 
         if(Utility.getConnectionStatus(getContext())) {
             new jsoupGooglefetch().execute();
@@ -82,42 +87,24 @@ public class NewsListFragment extends Fragment {
         protected Boolean doInBackground(Void... voids) {
             Document document = null;
             try {
-                //document = Jsoup.connect("https://news.google.com/?hl=en-IN&gl=IN&ceid=IN:en").get();
-                document = Jsoup.connect("https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pKVGlnQVAB?hl=en-IN&gl=IN&ceid=IN%3Aen").get();
-                //document = Jsoup.connect("https://news.google.com/search?q=india&hl=en-IN&gl=IN&ceid=IN%3Aen").get();
+                if(selectedLanguage==0) {
+                    document = Jsoup.connect("https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pKVGlnQVAB?hl=en-IN&gl=IN&ceid=IN%3Aen").get();
+                }else if(selectedLanguage==1){
+                    document = Jsoup.connect("https://www.bbc.com/hindi").get();
+                }else if(selectedLanguage==2){
 
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
             if(document!=null) {
-                Elements headlines = document.select("a.wmzpFf");
-                Elements articles = document.select("div.xrnccd");
                 try {
-                    Element elementNewsSource = articles.get(0).select("time.WW6dff").get(0);
-                    Log.e("titles", elementNewsSource.childNode(0).toString());
-
-                    for (int i = 0; i < articles.size(); i++) {
-                        GoogleNewsModel googleNewsModel = new GoogleNewsModel();
-                        if (checkElementSizeNotZero(articles.get(i).select("h3.ipQwMb").select("a.DY5T1d"))) {
-                            googleNewsModel.setHeadLine(articles.get(i).select("h3.ipQwMb").select("a.DY5T1d").get(0).childNode(0).toString());
-                            googleNewsModel.setHeadLineLink("https://news.google.com/" + articles.get(i).select("h3.ipQwMb").select("a.DY5T1d").get(0).getElementsByAttribute("href").attr("href"));
-                            googleNewsModel.setHeadLineSrc(articles.get(i).select("a.wEwyrc").get(0).childNode(0).toString());
-                            googleNewsModel.setHeadLineTime(articles.get(i).select("time.WW6dff").get(0).childNode(0).toString());
-                        }
-                        if (checkElementSizeNotZero(articles.get(i).select("img.tvs3Id"))) {
-                            googleNewsModel.setHeadLineImage(articles.get(i).select("img.tvs3Id").get(0).getElementsByAttribute("src").attr("src"));
-                        }
-                        if (checkElementSizeNotZero(articles.get(i).select("h4.ipQwMb").select("a.DY5T1d"))) {
-                            googleNewsModel.setSubHeadLine(articles.get(i).select("h4.ipQwMb").select("a.DY5T1d").get(0).childNode(0).toString());
-                            googleNewsModel.setSubHeadLineLink("https://news.google.com/" + articles.get(i).select("h4.ipQwMb").select("a.DY5T1d").get(0).getElementsByAttribute("href").attr("href"));
-                            googleNewsModel.setHeadLineSrc(articles.get(i).select("a.wEwyrc").get(0).childNode(0).toString());
-                            googleNewsModel.setSubHeadLineTime(articles.get(i).select("time.WW6dff").get(0).childNode(0).toString());
-                        }
-
-                        googleNewsModel.setViewType(1);
-                        googleNewsModels.add(googleNewsModel);
-
-
+                    if(selectedLanguage==0) {
+                        RssExtract.googleExtact(document, googleNewsModels);
+                    }else if(selectedLanguage==1){
+                        RssExtract.bbcExtract(document, googleNewsModels, true);
+                    }else if(selectedLanguage==2){
+                        RssExtract.googleExtact(document, googleNewsModels);
                     }
 
 
@@ -139,6 +126,7 @@ public class NewsListFragment extends Fragment {
     }
 
 
+
     class jsoupBBCHindi extends AsyncTask<Void, Void, Boolean> {
 
         @Override
@@ -149,35 +137,12 @@ public class NewsListFragment extends Fragment {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            Elements articles = document.select("div.distinct-component-group");
+
             try {
                 /*Elements element = articles.get(0).select("img");
                 Log.e("data", element.get(0).getElementsByAttribute("src").attr("src"));
 */
-                for (int i = 0; i < articles.size(); i++) {
-                    GoogleNewsModel googleNewsModel = new GoogleNewsModel();
-                    if (checkElementSizeNotZero(articles.get(i).select("a.faux-block-link__overlay-link"))) {
-                        googleNewsModel.setHeadLine(articles.get(i).select("a.faux-block-link__overlay-link").get(0).childNode(0).toString());
-                        googleNewsModel.setHeadLineLink("https://www.bbc.com" + articles.get(i).select("a.faux-block-link__overlay-link").get(0).getElementsByAttribute("href").attr("href"));
-                    }
-                    if (checkElementSizeNotZero(articles.get(i).select("div.date"))) {
-                        googleNewsModel.setHeadLineTime(articles.get(i).select("div.date").get(0).childNode(0).toString());
-                    }
-                    if (checkElementSizeNotZero(articles.get(i).select("p"))) {
-                        googleNewsModel.setSubHeadLine(articles.get(i).select("p").get(0).childNode(0).toString());
-                    }
 
-                    if (checkElementSizeNotZero(articles.get(i).select("div.js-delayed-image-load"))) {
-                        googleNewsModel.setHeadLineImage(articles.get(i).select("div.js-delayed-image-load").get(0).getElementsByAttribute("data-src").attr("data-src"));
-                    }
-                    /*if(googleNewsModel.getHeadLineImage().length()==0){
-                        if (checkElementSizeNotZero(articles.get(0).select("img"))) {
-                            googleNewsModel.setHeadLineImage(articles.get(0).select("img").get(0).getElementsByAttribute("src").attr("src"));
-                        }
-                    }*/
-
-                    googleNewsModels.add(googleNewsModel);
-                }
 
             } catch (Exception e) {
                 Log.e("error", "-----");
@@ -194,11 +159,7 @@ public class NewsListFragment extends Fragment {
         }
     }
 
-    private boolean checkElementSizeNotZero(Elements elements) {
-        if (elements.size() == 0)
-            return false;
-        return true;
-    }
+
 
 
     private class FetchFeedTask extends AsyncTask<Void, Void, Boolean> {

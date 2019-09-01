@@ -15,6 +15,7 @@ import com.shindejayesharun.newssource.news.App;
 import com.shindejayesharun.newssource.news.fragment.CollectionsFragment;
 import com.shindejayesharun.newssource.news.fragment.NewsListFragment;
 import com.shindejayesharun.newssource.news.fragment.ProfileFragment;
+import com.shindejayesharun.newssource.news.utility.PrefManager;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.annotation.NonNull;
@@ -30,6 +31,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -79,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     LinearLayout navActionBar,navSearchBar;
     ImageView imgBackArrow;
     EditText searchView;
+    PrefManager prefManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,6 +106,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         imgSearch.setOnClickListener(this);
         imgBackArrow.setOnClickListener(this);
+        prefManager=new PrefManager(this);
+
+        if(prefManager.getLanguage()==0){
+            Toast.makeText(this, "English", Toast.LENGTH_SHORT).show();
+        }else if(prefManager.getLanguage()==1){
+            Toast.makeText(this, "Hindi", Toast.LENGTH_SHORT).show();
+        }else if(prefManager.getLanguage()==2){
+            Toast.makeText(this, "Marathi", Toast.LENGTH_SHORT).show();
+        }
+
+
+
 
         InputMethodManager in = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         in.hideSoftInputFromWindow(searchView.getWindowToken(), 0);
